@@ -39,4 +39,21 @@ double capFloorletBS(int payoffType, SPtrYieldCurve spyc, double strikeRate,
 orf::Vector cdsPV(SPtrYieldCurve sprfyc, double credSprd, double cdsRate,
                   double recov, double timeToMat, size_t payFreq);
 
+/** Price of a Barrier option in the Black-Scholes model */
+double barrierOptionBS(int payoffType, std::string barrierType, double spot, double strike,
+                       double barrier, double timeToExp, double intRate, double divYield,
+                       double volatility);
+
+/** for Call Down In, Put Up In*/
+double barrierCdiPui(int payoffType, double spot, double strike, double barrier,
+                     double timeToExp, double intRate, double divYield, double volatility);
+
+  /** for Call Down Out, Put Up Out*/
+double barrierCdoPuo(int payoffType, double spot, double strike, double barrier,
+                     double timeToExp, double intRate, double divYield, double volatility);
+
+/** for Call Up In, Put Down In*/
+double barrierCuiPdi(int payoffType, double spot, double strike, double barrier,
+                     double timeToExp, double intRate, double divYield, double volatility);
+
 END_NAMESPACE(orf)

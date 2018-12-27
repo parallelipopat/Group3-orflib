@@ -203,4 +203,135 @@ orf::Vector cdsPV(SPtrYieldCurve sprfyc, double credSprd, double cdsRate,
   return ret;
 }
 
+/** Price of a Barrier option in the Black-Scholes model */
+double barrierOptionBS(int payoffType, std::string barrierType, double spot, double strike,
+                       double barrier, double timeToExp, double intRate, double divYield,
+                       double volatility)
+{
+  ORF_ASSERT(payoffType == 1 || payoffType == -1, "payoffType must be 1 or -1");
+  ORF_ASSERT(strike >= 0.0, "strike must be non-negative");
+  ORF_ASSERT(barrier >= 0.0, "barrier must be non-negative");
+  ORF_ASSERT(volatility >= 0.0, "volatility must be non-negative");
+  ORF_ASSERT(barrierType == "uo" || barrierType == "do" || barrierType == "ui" || barrierType == "di", "invalid barrier type: must be one of uo, do, ui, or di.");
+
+  double price = 0.0;
+  bool barrier_check = barrier <= strike;
+
+  double option_price = europeanOptionBS(payoffType, spot, strike, timeToExp, intRate, divYield, volatility)[0];
+
+  /** We use the fact that a put-up is the same as call-down (and put-down = call-up
+      with the introduction of a negative sign in some terms, which we toggle using phi.
+  */
+  if (payoffType == -1) {
+    barrierType[0] = barrierType[0] == 'u' ? 'd' : 'u';
+    barrier_check = !barrier_check;
+  }
+
+  if (barrier_check) {
+    if (barrierType == "di") {
+      price = barrierCdiPui(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
+    }
+    else if (barrierType == "do") {
+      price = option_price - barrierCdiPui(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
+    }
+    else if (barrierType == "ui") {
+      price = option_price;
+    }
+    else {
+      price = 0.0;
+    }
+  }
+  else {
+    if (barrierType == "di") {
+      price = option_price - barrierCdoPuo(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
+    }
+    else if (barrierType == "do") {
+      price = barrierCdoPuo(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
+    }
+    else if (barrierType == "ui") {
+      price = barrierCuiPdi(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
+    }
+    else {
+      price = option_price - barrierCuiPdi(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
+    }
+  }
+
+  return price;
+}
+
+
+/** for Call Down In, Put Up In*/
+double barrierCdiPui(int payoffType, double spot, double strike, double barrier,
+                     double timeToExp, double intRate, double divYield, double volatility)
+{
+  double phi = payoffType;
+  double lambda = (intRate - divYield)/(volatility*volatility) + 0.5;
+  double sigT = volatility * sqrt(timeToExp);
+  double y = log((barrier*barrier)/(spot*strike))/sigT + lambda*sigT;
+
+  double df = exp(-intRate * timeToExp);
+  double qf = exp(-divYield * timeToExp);
+  
+  NormalDistribution normal;
+
+  double t1 = spot * qf * pow(barrier/spot, 2 * lambda) * normal.cdf(phi * y);
+  double t2 = strike * df * pow(barrier / spot, 2 * lambda - 2) * normal.cdf(phi * (y - sigT));
+
+  double price = phi * (t1 - t2);
+
+  return price;
+}
+
+/** for Call Down Out, Put Up Out*/
+double barrierCdoPuo(int payoffType, double spot, double strike, double barrier,
+                     double timeToExp, double intRate, double divYield, double volatility)
+{
+  double phi = payoffType;
+  double lambda = (intRate - divYield) / (volatility*volatility) + 0.5;
+  double sigT = volatility * sqrt(timeToExp);
+  double x1 = log(spot / barrier) / sigT + lambda * sigT;
+  double y1 = log(barrier / spot) / sigT + lambda * sigT;
+
+  double df = exp(-intRate * timeToExp);
+  double qf = exp(-divYield * timeToExp);
+
+  NormalDistribution normal;
+
+  double t1 = spot * qf * normal.cdf(phi * x1);
+  double t2 = strike * df * normal.cdf(phi * (x1 - sigT));
+  double t3 = spot * qf * pow(barrier / spot, 2 * lambda) * normal.cdf(phi * y1);
+  double t4 = strike * df * pow(barrier / spot, 2 * lambda - 2) * normal.cdf(phi * (y1 - sigT));
+
+  double price = phi * (t1 - t2 - t3 + t4);
+
+  return price;
+}
+
+/** for Call Up In, Put Down In*/
+double barrierCuiPdi(int payoffType, double spot, double strike, double barrier,
+                     double timeToExp, double intRate, double divYield, double volatility)
+{
+  double phi = payoffType;
+  double phi_inv = -1 * payoffType;
+  double lambda = (intRate - divYield) / (volatility*volatility) + 0.5;
+  double sigT = volatility * sqrt(timeToExp);
+  double x1 = log(spot / barrier) / sigT + lambda * sigT;
+  double y1 = log(barrier / spot) / sigT + lambda * sigT;
+  double y = log((barrier*barrier) / (spot*strike)) / sigT + lambda * sigT;
+
+  double df = exp(-intRate * timeToExp);
+  double qf = exp(-divYield * timeToExp);
+
+  NormalDistribution normal;
+
+  double t1 = spot * qf * normal.cdf(phi * x1);
+  double t2 = strike * df * normal.cdf(phi * (x1 - sigT));
+  double t3 = spot * qf * pow(barrier / spot, 2 * lambda) * (normal.cdf(phi_inv * y) - normal.cdf(phi_inv * y1));
+  double t4 = strike * df * pow(barrier / spot, 2 * lambda - 2) * (normal.cdf(phi_inv * (y - sigT)) - normal.cdf(phi_inv * (y1 - sigT)));
+
+  double price = phi * (t1 - t2 - t3 + t4);
+
+  return price;
+}
+
 END_NAMESPACE(orf)
