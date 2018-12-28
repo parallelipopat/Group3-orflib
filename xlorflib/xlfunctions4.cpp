@@ -6,6 +6,7 @@
 #include <orflib/market/market.hpp>
 #include <orflib/products/europeancallput.hpp>
 #include <orflib/products/americancallput.hpp>
+#include <orflib/products/barriercallput.hpp>
 #include <orflib/methods/pde/pde1dsolver.hpp>
 
 #include <xlorflib/xlutils.hpp>
@@ -161,6 +162,92 @@ LPXLFOPER EXCEL_EXPORT xlOrfAmerBSPDE(LPXLFOPER xlPayoffType,
   else {
     xlRet(0, 0) = results.prices[0];
   }
+
+  return xlRet;
+
+  EXCEL_END;
+}
+
+LPXLFOPER EXCEL_EXPORT xlOrfBarrBSPDE(LPXLFOPER xlPayoffType,
+                                      LPXLFOPER xlStrike,
+                                      LPXLFOPER xlTimeToExp,
+                                      LPXLFOPER xlSpot,
+                                      LPXLFOPER xlBarrier,
+                                      LPXLFOPER xlBarrierType,
+                                      LPXLFOPER xlFrequency,
+                                      LPXLFOPER xlDiscountCrv,
+                                      LPXLFOPER xlDivYield,
+                                      LPXLFOPER xlVolatility,
+                                      LPXLFOPER xlPdeParams,
+                                      LPXLFOPER xlHeaders)
+{
+  EXCEL_BEGIN;
+
+  if (XlfExcel::Instance().IsCalledByFuncWiz())
+    return XlfOper(true);
+
+  int payoffType = XlfOper(xlPayoffType).AsInt();
+  double spot = XlfOper(xlSpot).AsDouble();
+  double strike = XlfOper(xlStrike).AsDouble();
+  double barrier = XlfOper(xlBarrier).AsDouble();
+  std::string barrier_type = xlStripTick(XlfOper(xlBarrierType).AsString());
+  double timeToExp = XlfOper(xlTimeToExp).AsDouble();
+  int frequency = XlfOper(xlFrequency).AsInt();
+
+  BarrierCallPut::Freq freq;
+  switch (frequency) {
+  case 0:
+    freq = BarrierCallPut::Freq::MONTHLY;
+    break;
+  case 1:
+    freq = BarrierCallPut::Freq::WEEKLY;
+    break;
+  case 2:
+    freq = BarrierCallPut::Freq::DAILY;
+    break;
+  default:
+    ORF_ASSERT(0, "error: unknown barrier option frequency type");
+  }
+
+  std::string name = xlStripTick(XlfOper(xlDiscountCrv).AsString());
+  SPtrYieldCurve spyc = market().yieldCurves().get(name);
+  ORF_ASSERT(spyc, "error: yield curve " + name + " not found");
+
+  double divYield = XlfOper(xlDivYield).AsDouble();
+  SPtrVolatilityTermStructure spvol;
+  if (XlfOper(xlVolatility).IsNumber()) {
+    double vol = XlfOper(xlVolatility).AsDouble();
+    spvol.reset(new VolatilityTermStructure(&timeToExp, &timeToExp + 1, &vol, &vol + 1));
+  }
+  else {  // assume string
+    std::string volname = xlStripTick(XlfOper(xlVolatility).AsString());
+    spvol = market().volatilities().get(volname);
+    ORF_ASSERT(spvol, "error: volatility " + volname + " not found");
+  }
+
+  // read the PDE parameters
+  PdeParams pdeparams = xlOperToPdeParams(xlPdeParams);
+  // handling the xlHeaders argument
+  bool headers;
+  if (XlfOper(xlHeaders).IsMissing() || XlfOper(xlHeaders).IsNil())
+    headers = false;
+  else
+    headers = XlfOper(xlHeaders).AsBool();
+
+  // create the product
+  SPtrProduct spprod(new BarrierCallPut(payoffType, strike, barrier, barrier_type, freq, timeToExp));
+  // create the PDE solver
+  Pde1DResults results;
+  Pde1DSolver solver(spprod, spyc, spot, divYield, spvol, results);
+  solver.solve(pdeparams);
+
+  // write results to the outbound XlfOper
+  RW offset = headers ? 1 : 0;
+  XlfOper xlRet(1 + offset, 1); // construct a range of size 2 x 1
+  if (headers) {
+    xlRet(0, 0) = "Price";
+  }
+  xlRet(offset, 0) = results.prices[0];
 
   return xlRet;
 

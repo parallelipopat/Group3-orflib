@@ -164,6 +164,9 @@
     <ClInclude Include="pricers\ptpricers.hpp">
       <Filter>pricers</Filter>
     </ClInclude>
+    <ClInclude Include="products\barriercallput.hpp">
+      <Filter>products</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="math">
