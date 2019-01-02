@@ -238,16 +238,42 @@ LPXLFOPER EXCEL_EXPORT xlOrfBarrBSPDE(LPXLFOPER xlPayoffType,
   SPtrProduct spprod(new BarrierCallPut(payoffType, strike, barrier, barrier_type, freq, timeToExp));
   // create the PDE solver
   Pde1DResults results;
-  Pde1DSolver solver(spprod, spyc, spot, divYield, spvol, results);
+  bool storeAllResults = headers;
+  Pde1DSolver solver(spprod, spyc, spot, divYield, spvol, results, storeAllResults);
   solver.solve(pdeparams);
 
   // write results to the outbound XlfOper
-  RW offset = headers ? 1 : 0;
-  XlfOper xlRet(1 + offset, 1); // construct a range of size 2 x 1
+
+  //RW offset = headers ? 1 : 0;
+  //XlfOper xlRet(1 + offset, 1); // construct a range of size 2 x 1
+  //if (headers) {
+  //  xlRet(0, 0) = "Price";
+  //}
+  //xlRet(offset, 0) = results.prices[0];
+  RW nrows = headers ? 1 + (RW)results.times.size() : 1;
+  COL ncols = headers ? 2 + (COL)results.values.front().n_rows : 1;
+  XlfOper xlRet(nrows, ncols); // construct a range of size nrows x ncols
   if (headers) {
-    xlRet(0, 0) = "Price";
+	  xlRet(0, 0) = "Price";
+	  xlRet(1, 0) = results.prices[0];
+	  for (RW i = 2; i < nrows; ++i)  xlRet(i, 0) = XlfOper::Error(xlerrNA);
+
+	  xlRet(0, 1) = "Time/Spot";
+	  Vector spots;
+	  results.getSpotAxis(0, spots);
+
+	  for (size_t i = 0; i < spots.size(); ++i)
+		  xlRet(0, 2 + (COL)i) = spots[i];
+	  for (size_t i = 0; i < results.times.size(); ++i) {
+		  xlRet(1 + (RW)i, 1) = results.times[i];
+		  for (size_t j = 0; j < results.values.front().n_rows; ++j)
+			  xlRet(1 + (RW)i, 2 + (COL)j) = results.values[i](j, 0);
+	  }
   }
-  xlRet(offset, 0) = results.prices[0];
+  else {
+	  xlRet(0, 0) = results.prices[0];
+  }
+
 
   return xlRet;
 

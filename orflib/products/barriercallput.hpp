@@ -1,14 +1,12 @@
 /**
-@file  barrierbasketcallput.hpp
-@brief The payoff of a Barrier Call/Put
+@file  barriercallput.hpp
+@brief The payoff of a European Barrier Call/Put option
 */
 
 #ifndef ORF_BARRIERCALLPUT_HPP
 #define ORF_BARRIERCALLPUT_HPP
 
 #include <orflib/products/product.hpp>
-#include <algorithm>
-#include <functional>
 
 BEGIN_NAMESPACE(orf)
 
@@ -58,8 +56,9 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
   : payoffType_(payoffType), strike_(strike), barrier_(barrier), frequency_(frequency), barrier_type_(barrier_type), timeToExp_(timeToExp)
 {
   ORF_ASSERT(payoffType == 1 || payoffType == -1, "BarrierCallPut: the payoff type must be 1 (call) or -1 (put)!");
-  ORF_ASSERT(strike >= 0.0, "BarrierCallPut: the strike must be positive!");
-  ORF_ASSERT(barrier >= 0.0, "BarrierCallPut: the barrier must be positive!");
+  ORF_ASSERT(strike > 0.0, "BarrierCallPut: the strike must be positive!");
+  ORF_ASSERT(barrier > 0.0, "BarrierCallPut: the barrier must be positive!");
+  ORF_ASSERT(timeToExp > 0.0, "BarrierCallPut: the time to expiration must be positive!");
 
   double time_factor = 0.0;
   size_t nfixings = static_cast<size_t>(0);
@@ -72,12 +71,13 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
     time_factor = 52.0;
     break;
   case BarrierCallPut::Freq::DAILY:
-    time_factor = DAYS_PER_YEAR;
+    time_factor = 365.0;
     break;
   default:
-    ORF_ASSERT(0, "error: unknown barrier option frequency type");
+    ORF_ASSERT(0, "BarrierCallPut: unknown barrier option frequency type!");
   }
 
+  // number of fixing times determined by Freq = time_factor
   nfixings = timeToExp * time_factor + 1;
   double rounded_up_nfixings = ceil(nfixings);
   ORF_ASSERT(rounded_up_nfixings > 0, "BarrierCallPut: the option has expired!");
@@ -103,20 +103,59 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
 inline void BarrierCallPut::eval(Matrix const& pricePath)
 {
   ORF_ASSERT(0, "Not implemented yet!");
+
+  // I suspect this implementation isn't necessary. This was used for Monte Carlo i think
 }
 
 inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contValue)
 {
-  double S_T = spots[0];
+  // the continuation value is not used
+	double S_T = spots[idx];
 
-  if (idx == fixTimes_.size() - 1) { // this is the last index
-    double payoff = (S_T - strike_) * payoffType_;
-    payAmounts_[0] = payoff > 0.0 && contValue != 1.0 ? payoff : 0.0;
-  }
-  else {  // this is not the last index, check the exercise condition
-    contValue = barrier_type_[0] == 'u' && S_T >= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
-    contValue = barrier_type_[0] == 'd' && S_T <= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
-  }
+  // if (idx == fixTimes_.size() - 1) { // this is the last index
+  //  double payoff = (S_T - strike_) * payoffType_;
+  //  payAmounts_[0] = payoff > 0.0 && contValue != 1.0 ? payoff : 0.0;
+  //}
+  //else {  // this is not the last index, check the exercise condition
+  //  contValue = barrier_type_[0] == 'u' && S_T >= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
+  //  contValue = barrier_type_[0] == 'd' && S_T <= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
+  //}
+	if (payoffType_ == 1) {
+		if (barrier_type_[0] == 'u') {
+			if (barrier_type_[1] == 'o') {
+				payAmounts_[idx] = S_T >= strike_ && S_T < barrier_ ? S_T - strike_ : 0.0;
+			}
+			else {
+				ORF_ASSERT(0, "Not implemented!");
+			}
+		}
+		else {
+			if (barrier_type_[1] == 'o') {
+				payAmounts_[idx] = S_T >= strike_ && S_T > barrier_ ? S_T - strike_ : 0.0;
+			}
+			else {
+				ORF_ASSERT(0, "Not implemented!");
+			}
+		}
+	}
+	else {
+		if (barrier_type_[0] == 'u') {
+			if (barrier_type_[1] == 'o') {
+				payAmounts_[idx] = S_T <= strike_ && S_T < barrier_ ? strike_ - S_T : 0.0;
+			}
+			else {
+				ORF_ASSERT(0, "Not implemented!");
+			}
+		}
+		else {
+			if (barrier_type_[1] == 'o') {
+				payAmounts_[idx] = S_T <= strike_ && S_T > barrier_ ? strike_ - S_T : 0.0;
+			}
+			else {
+				ORF_ASSERT(0, "Not implemented!");
+			}
+		}
+	}
 }
 
 END_NAMESPACE(orf)
