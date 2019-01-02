@@ -110,7 +110,7 @@ inline void BarrierCallPut::eval(Matrix const& pricePath)
 inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contValue)
 {
   // the continuation value is not used
-	double S_T = spots[idx];
+	double spot = spots[idx];
 
   // if (idx == fixTimes_.size() - 1) { // this is the last index
   //  double payoff = (S_T - strike_) * payoffType_;
@@ -120,39 +120,78 @@ inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contVal
   //  contValue = barrier_type_[0] == 'u' && S_T >= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
   //  contValue = barrier_type_[0] == 'd' && S_T <= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
   //}
-	if (payoffType_ == 1) {
-		if (barrier_type_[0] == 'u') {
-			if (barrier_type_[1] == 'o') {
-				payAmounts_[idx] = S_T >= strike_ && S_T < barrier_ ? S_T - strike_ : 0.0;
+	if (idx == fixTimes_.size() - 1) { // this is the last index
+		if (payoffType_ == 1) {
+			if (barrier_type_[0] == 'u') {
+				if (barrier_type_[1] == 'o') {
+					payAmounts_[idx] = spot >= strike_ && spot < barrier_ ? spot - strike_ : 0.0;
+				}
+				else {
+					ORF_ASSERT(0, "Not implemented!");
+				}
 			}
 			else {
-				ORF_ASSERT(0, "Not implemented!");
+				if (barrier_type_[1] == 'o') {
+					payAmounts_[idx] = spot >= strike_ && spot > barrier_ ? spot - strike_ : 0.0;
+				}
+				else {
+					ORF_ASSERT(0, "Not implemented!");
+				}
 			}
 		}
 		else {
-			if (barrier_type_[1] == 'o') {
-				payAmounts_[idx] = S_T >= strike_ && S_T > barrier_ ? S_T - strike_ : 0.0;
+			if (barrier_type_[0] == 'u') {
+				if (barrier_type_[1] == 'o') {
+					payAmounts_[idx] = spot <= strike_ && spot < barrier_ ? strike_ - spot : 0.0;
+				}
+				else {
+					ORF_ASSERT(0, "Not implemented!");
+				}
 			}
 			else {
-				ORF_ASSERT(0, "Not implemented!");
+				if (barrier_type_[1] == 'o') {
+					payAmounts_[idx] = spot <= strike_ && spot > barrier_ ? strike_ - spot : 0.0;
+				}
+				else {
+					ORF_ASSERT(0, "Not implemented!");
+				}
 			}
 		}
 	}
-	else {
-		if (barrier_type_[0] == 'u') {
-			if (barrier_type_[1] == 'o') {
-				payAmounts_[idx] = S_T <= strike_ && S_T < barrier_ ? strike_ - S_T : 0.0;
+	else {  // this is not the last index, check whether barrier has been hit
+		//double intrinsicValue = (spot - strike_) * payoffType_;
+		//intrinsicValue = intrinsicValue >= 0.0 ? intrinsicValue : 0.0;
+		//payAmounts_[idx] = contValue >= intrinsicValue ? contValue : intrinsicValue;
+		/////// zero out the amounts after this index
+		//for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+		//	payAmounts_[j] = 0.0;
+
+		if (payoffType_ == 1) {
+			if (barrier_type_[0] == 'u') {
+				if (barrier_type_[1] == 'o' && spot >= barrier_) {
+					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+						payAmounts_[j] = 0.0;
+				}
 			}
 			else {
-				ORF_ASSERT(0, "Not implemented!");
+				if (barrier_type_[1] == 'o' && spot <= barrier_) {
+					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+						payAmounts_[j] = 0.0;
+				}
 			}
 		}
 		else {
-			if (barrier_type_[1] == 'o') {
-				payAmounts_[idx] = S_T <= strike_ && S_T > barrier_ ? strike_ - S_T : 0.0;
+			if (barrier_type_[0] == 'u') {
+				if (barrier_type_[1] == 'o' && spot >= barrier_) {
+					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+						payAmounts_[j] = 0.0;
+				}
 			}
 			else {
-				ORF_ASSERT(0, "Not implemented!");
+				if (barrier_type_[1] == 'o' && spot <= barrier_) {
+					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+						payAmounts_[j] = 0.0;
+				}
 			}
 		}
 	}
