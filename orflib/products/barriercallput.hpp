@@ -71,15 +71,15 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
     time_factor = 52.0;
     break;
   case BarrierCallPut::Freq::DAILY:
-    time_factor = DAYS_PER_YEAR;
+    time_factor = 365.0;
     break;
   default:
     ORF_ASSERT(0, "BarrierCallPut: unknown barrier option frequency type!");
   }
 
-  double stub_time = (timeToExp_ * DAYS_PER_YEAR > floor(timeToExp_ * DAYS_PER_YEAR / time_factor)*time_factor) ? (timeToExp_*DAYS_PER_YEAR - floor(timeToExp_*DAYS_PER_YEAR / time_factor) * time_factor) : 0.0;
+  double stub_time = (timeToExp_ * 365.0 > floor(timeToExp_ * 365.0 / time_factor)*time_factor) ? (timeToExp_*365.0 - floor(timeToExp_*365.0 / time_factor) * time_factor) : 0.0;
   double offset = stub_time > 0 ? 1.0 : 0.0;
-  double remaining_time = DAYS_PER_YEAR - stub_time;
+  double remaining_time = 365.0 - stub_time;
 
   // number of fixing times determined by Freq = time_factor AS WELL AS whether there is a stub
   nfixings = timeToExp_ * time_factor + 1 + offset;
@@ -91,7 +91,7 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
   fixTimes_[0] = 0.0;
 
   for (size_t i = 0; i < rounded_up_nfixings - 1; ++i)
-    fixTimes_[i + offset] = i / DAYS_PER_YEAR * (remaining_time / time_factor) + stub_time / DAYS_PER_YEAR;
+    fixTimes_[i + offset] = i * floor(365.0 / time_factor) / 365.0 + stub_time / 365.0;
   fixTimes_[rounded_up_nfixings - 1] = timeToExp_;
 
   payTimes_ = fixTimes_;
