@@ -78,26 +78,37 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
   }
 
   // number of fixing times determined by Freq = time_factor
-  nfixings = timeToExp * time_factor + 1;
-  double rounded_up_nfixings = ceil(nfixings);
-  ORF_ASSERT(rounded_up_nfixings > 0, "BarrierCallPut: the option has expired!");
+  //nfixings = timeToExp * time_factor + 1;
+  //double rounded_up_nfixings = ceil(nfixings);
+  //ORF_ASSERT(rounded_up_nfixings > 0, "BarrierCallPut: the option has expired!");
 
-  double stub_time = rounded_up_nfixings > nfixings ? (timeToExp - floor(timeToExp)) / time_factor : 0.0;
-  double offset = rounded_up_nfixings > nfixings ? 1.0 : 0.0;
+  //double stub_time = rounded_up_nfixings > nfixings ? (timeToExp - floor(timeToExp)) / time_factor : 0.0;
+  //double offset = rounded_up_nfixings > nfixings ? 1.0 : 0.0;
 
   // set the fixing times
-  fixTimes_.resize(rounded_up_nfixings);
-  fixTimes_[0] = 0.0;
+  //fixTimes_.resize(rounded_up_nfixings);
+  //fixTimes_[0] = 0.0;
 
-  for (size_t i = 0; i < rounded_up_nfixings - 1; ++i)
-    fixTimes_[i + offset] = i / time_factor + stub_time;
-  fixTimes_[nfixings - 1] = timeToExp_;
+  //for (size_t i = 0; i < rounded_up_nfixings - 1; ++i)
+  //  fixTimes_[i + offset] = i / time_factor + stub_time;
+  //fixTimes_[nfixings - 1] = timeToExp_;
 
-  payTimes_.resize(1);
-  payTimes_[0] = timeToExp_;
+  // payTimes_.resize(1);
+  // payTimes_[0] = timeToExp_;
 
   // this product generates only one payment
-  payAmounts_.resize(1);
+  // payAmounts_.resize(1);
+  nfixings = static_cast<size_t>(timeToExp * DAYS_PER_YEAR) + 1;
+  ORF_ASSERT(nfixings > 0, "BarrierCallPut: the option has expired!");
+  fixTimes_.resize(nfixings);
+  for (size_t i = 0; i < nfixings - 1; ++i)
+	  fixTimes_[i] = i / DAYS_PER_YEAR;
+  fixTimes_[nfixings - 1] = timeToExp_;
+
+  payTimes_ = fixTimes_;
+
+  // this product could generate a payment on each day between now and expiration.
+  payAmounts_.resize(payTimes_.size());
 }
 
 inline void BarrierCallPut::eval(Matrix const& pricePath)
@@ -110,7 +121,33 @@ inline void BarrierCallPut::eval(Matrix const& pricePath)
 inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contValue)
 {
   // the continuation value is not used
-	double spot = spots[idx];
+	double spot = spots[0];
+
+	if (idx == payAmounts_.size() - 1) { // this is the last index
+		double payoff = (spot - strike_) * payoffType_;
+		if (barrier_type_[0] == 'u') {
+			payAmounts_[idx] = payoff > 0.0 && spot < barrier_ ? payoff : 0.0;
+		}
+		else {
+			payAmounts_[idx] = payoff > 0.0 && spot > barrier_ ? payoff : 0.0;
+		}	
+	}
+	else {  // this is not the last index, check whether barrier has been breached
+		if (barrier_type_[0] == 'u') {
+			payAmounts_[idx] = spot < barrier_ ? contValue : 0;
+		}
+		else {
+			payAmounts_[idx] = spot > barrier_ ? contValue : 0;
+		}
+		
+		
+		//double intrinsicValue = (spot - strike_) * payoffType_;
+		//intrinsicValue = intrinsicValue >= 0.0 ? intrinsicValue : 0.0;
+		//payAmounts_[idx] = contValue >= intrinsicValue ? contValue : 0;
+		// zero out the amounts after this index
+		//for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+		//	payAmounts_[j] = 0.0;
+	}
 
   // if (idx == fixTimes_.size() - 1) { // this is the last index
   //  double payoff = (S_T - strike_) * payoffType_;
@@ -120,81 +157,81 @@ inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contVal
   //  contValue = barrier_type_[0] == 'u' && S_T >= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
   //  contValue = barrier_type_[0] == 'd' && S_T <= barrier_ && contValue != 1.0 ? 1.0 : 0.0;
   //}
-	if (idx == fixTimes_.size() - 1) { // this is the last index
-		if (payoffType_ == 1) {
-			if (barrier_type_[0] == 'u') {
-				if (barrier_type_[1] == 'o') {
-					payAmounts_[idx] = spot >= strike_ && spot < barrier_ ? spot - strike_ : 0.0;
-				}
-				else {
-					ORF_ASSERT(0, "Not implemented!");
-				}
-			}
-			else {
-				if (barrier_type_[1] == 'o') {
-					payAmounts_[idx] = spot >= strike_ && spot > barrier_ ? spot - strike_ : 0.0;
-				}
-				else {
-					ORF_ASSERT(0, "Not implemented!");
-				}
-			}
-		}
-		else {
-			if (barrier_type_[0] == 'u') {
-				if (barrier_type_[1] == 'o') {
-					payAmounts_[idx] = spot <= strike_ && spot < barrier_ ? strike_ - spot : 0.0;
-				}
-				else {
-					ORF_ASSERT(0, "Not implemented!");
-				}
-			}
-			else {
-				if (barrier_type_[1] == 'o') {
-					payAmounts_[idx] = spot <= strike_ && spot > barrier_ ? strike_ - spot : 0.0;
-				}
-				else {
-					ORF_ASSERT(0, "Not implemented!");
-				}
-			}
-		}
-	}
-	else {  // this is not the last index, check whether barrier has been hit
-		//double intrinsicValue = (spot - strike_) * payoffType_;
-		//intrinsicValue = intrinsicValue >= 0.0 ? intrinsicValue : 0.0;
-		//payAmounts_[idx] = contValue >= intrinsicValue ? contValue : intrinsicValue;
-		/////// zero out the amounts after this index
-		//for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
-		//	payAmounts_[j] = 0.0;
+	//if (idx == payTimes_.size() - 1) { // this is the last index
+	//	if (payoffType_ == 1) {
+	//		if (barrier_type_[0] == 'u') {
+	//			if (barrier_type_[1] == 'o') {
+	//				payAmounts_[idx] = spot >= strike_ && spot < barrier_ ? spot - strike_ : 0.0;
+	//			}
+	//			else {
+	//				ORF_ASSERT(0, "Not implemented!");
+	//			}
+	//		}
+	//		else {
+	//			if (barrier_type_[1] == 'o') {
+	//				payAmounts_[idx] = spot >= strike_ && spot > barrier_ ? spot - strike_ : 0.0;
+	//			}
+	//			else {
+	//				ORF_ASSERT(0, "Not implemented!");
+	//			}
+	//		}
+	//	}
+	//	else {
+	//		if (barrier_type_[0] == 'u') {
+	//			if (barrier_type_[1] == 'o') {
+	//				payAmounts_[idx] = spot <= strike_ && spot < barrier_ ? strike_ - spot : 0.0;
+	//			}
+	//			else {
+	//				ORF_ASSERT(0, "Not implemented!");
+	//			}
+	//		}
+	//		else {
+	//			if (barrier_type_[1] == 'o') {
+	//				payAmounts_[idx] = spot <= strike_ && spot > barrier_ ? strike_ - spot : 0.0;
+	//			}
+	//			else {
+	//				ORF_ASSERT(0, "Not implemented!");
+	//			}
+	//		}
+	//	}
+	//}
+	//else {  // this is not the last index, check whether barrier has been hit
+	//	//double intrinsicValue = (spot - strike_) * payoffType_;
+	//	//intrinsicValue = intrinsicValue >= 0.0 ? intrinsicValue : 0.0;
+	//	//payAmounts_[idx] = contValue >= intrinsicValue ? contValue : intrinsicValue;
+	//	/////// zero out the amounts after this index
+	//	//for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+	//	//	payAmounts_[j] = 0.0;
 
-		if (payoffType_ == 1) {
-			if (barrier_type_[0] == 'u') {
-				if (barrier_type_[1] == 'o' && spot >= barrier_) {
-					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
-						payAmounts_[j] = 0.0;
-				}
-			}
-			else {
-				if (barrier_type_[1] == 'o' && spot <= barrier_) {
-					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
-						payAmounts_[j] = 0.0;
-				}
-			}
-		}
-		else {
-			if (barrier_type_[0] == 'u') {
-				if (barrier_type_[1] == 'o' && spot >= barrier_) {
-					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
-						payAmounts_[j] = 0.0;
-				}
-			}
-			else {
-				if (barrier_type_[1] == 'o' && spot <= barrier_) {
-					for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
-						payAmounts_[j] = 0.0;
-				}
-			}
-		}
-	}
+	//	if (payoffType_ == 1) {
+	//		if (barrier_type_[0] == 'u') {
+	//			if (barrier_type_[1] == 'o' && spot >= barrier_) {
+	//				for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+	//					payAmounts_[j] = 0.0;
+	//			}
+	//		}
+	//		else {
+	//			if (barrier_type_[1] == 'o' && spot <= barrier_) {
+	//				for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+	//					payAmounts_[j] = 0.0;
+	//			}
+	//		}
+	//	}
+	//	else {
+	//		if (barrier_type_[0] == 'u') {
+	//			if (barrier_type_[1] == 'o' && spot >= barrier_) {
+	//				for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+	//					payAmounts_[j] = 0.0;
+	//			}
+	//		}
+	//		else {
+	//			if (barrier_type_[1] == 'o' && spot <= barrier_) {
+	//				for (size_t j = idx + 1; j < payAmounts_.size(); ++j)
+	//					payAmounts_[j] = 0.0;
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 END_NAMESPACE(orf)
