@@ -77,21 +77,22 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
     ORF_ASSERT(0, "BarrierCallPut: unknown barrier option frequency type!");
   }
 
-  // number of fixing times determined by Freq = time_factor
-  nfixings = timeToExp * time_factor + 1;
+  double stub_time = (timeToExp_ * DAYS_PER_YEAR > floor(timeToExp_ * DAYS_PER_YEAR / time_factor)*time_factor) ? (timeToExp_*DAYS_PER_YEAR - floor(timeToExp_*DAYS_PER_YEAR / time_factor) * time_factor) : 0.0;
+  double offset = stub_time > 0 ? 1.0 : 0.0;
+  double remaining_time = DAYS_PER_YEAR - stub_time;
+
+  // number of fixing times determined by Freq = time_factor AS WELL AS whether there is a stub
+  nfixings = timeToExp_ * time_factor + 1 + offset;
   size_t rounded_up_nfixings = ceil(nfixings);
   ORF_ASSERT(rounded_up_nfixings > 0, "BarrierCallPut: the option has expired!");
-
-  double stub_time = rounded_up_nfixings > nfixings ? (timeToExp - floor(timeToExp)) / time_factor : 0.0;
-  double offset = rounded_up_nfixings > nfixings ? 1.0 : 0.0;
 
   // set the fixing times
   fixTimes_.resize(rounded_up_nfixings);
   fixTimes_[0] = 0.0;
 
   for (size_t i = 0; i < rounded_up_nfixings - 1; ++i)
-    fixTimes_[i + offset] = i / time_factor + stub_time;
-  fixTimes_[nfixings - 1] = timeToExp_;
+    fixTimes_[i + offset] = i / DAYS_PER_YEAR * (remaining_time / time_factor) + stub_time / DAYS_PER_YEAR;
+  fixTimes_[rounded_up_nfixings - 1] = timeToExp_;
 
   payTimes_ = fixTimes_;
 
