@@ -61,28 +61,34 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
   ORF_ASSERT(timeToExp > 0.0, "BarrierCallPut: the time to expiration must be positive!");
 
   double time_factor = 0.0;
+  double monitoring_freq = 0.0;
   size_t nfixings = static_cast<size_t>(0);
 
   switch (frequency) {
   case BarrierCallPut::Freq::MONTHLY:
-    time_factor = 12.0;
+    monitoring_freq = 12.0;
+    time_factor = 30.0;
     break;
   case BarrierCallPut::Freq::WEEKLY:
-    time_factor = 52.0;
+    monitoring_freq = 52.0;
+    time_factor = 7.0;
     break;
   case BarrierCallPut::Freq::DAILY:
-    time_factor = 365.0;
+    monitoring_freq = 365.0;
+    time_factor = 1.0;
     break;
   default:
     ORF_ASSERT(0, "BarrierCallPut: unknown barrier option frequency type!");
   }
 
-  double stub_time = (timeToExp_ * 365.0 > floor(timeToExp_ * 365.0 / time_factor)*time_factor) ? (timeToExp_*365.0 - floor(timeToExp_*365.0 / time_factor) * time_factor) : 0.0;
+  double num_days = ceil(timeToExp_ * 365.0);
+  double rounded_num_days = floor(num_days / time_factor) * time_factor;
+
+  double stub_time = (num_days > rounded_num_days) ? num_days - rounded_num_days : 0.0;
   double offset = stub_time > 0 ? 1.0 : 0.0;
-  double remaining_time = 365.0 - stub_time;
 
   // number of fixing times determined by Freq = time_factor AS WELL AS whether there is a stub
-  nfixings = timeToExp_ * time_factor + 1 + offset;
+  nfixings = timeToExp_ * monitoring_freq + offset + 1;
   size_t rounded_up_nfixings = ceil(nfixings);
   ORF_ASSERT(rounded_up_nfixings > 0, "BarrierCallPut: the option has expired!");
 
@@ -91,7 +97,7 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
   fixTimes_[0] = 0.0;
 
   for (size_t i = 0; i < rounded_up_nfixings - 1; ++i)
-    fixTimes_[i + offset] = i * floor(365.0 / time_factor) / 365.0 + stub_time / 365.0;
+    fixTimes_[i + offset] = i * (time_factor/365.0) + stub_time/365.0;
   fixTimes_[rounded_up_nfixings - 1] = timeToExp_;
 
   payTimes_ = fixTimes_;
