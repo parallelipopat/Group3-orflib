@@ -1,6 +1,19 @@
 ORFLIB Release Notes
 ====================
 
+VERSION 0.11.0
+-------------
+
+### Additions
+
+1. In file `orflib/pricers/simplepricers.hpp` and `simplepricers.cpp`.  
+	Definition of function barrierOptionBS and related helper functions. 
+  
+2. New files `xlorflib/xlfunctions6.cpp` and `xlorflib/xlregister6.cpp`.  
+	They register and implement the following Excel callable functions:  
+   ORF.BARRBS             (price of Barrier option under Black-Scholes)  
+
+
 VERSION 0.10.0
 -------------
 
