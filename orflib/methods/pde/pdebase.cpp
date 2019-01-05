@@ -18,7 +18,9 @@ void PdeBase::solve(PdeParams const& params)
   nSteps_ = timesteps_.size();
 
   // set the alignment values to the corresponding spots
-  alignments_ = spots_;
+  //alignments_ = spots_;
+  //alignments_.push_back(150.00);
+  setAlignment();
 
   // initialize the grid
   double T = timesteps_.back();

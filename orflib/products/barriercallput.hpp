@@ -39,6 +39,10 @@ public:
   */
   virtual void eval(size_t idx, Vector const& spots, double contValue) override;
 
+  bool needsAlignment() override;
+
+  std::vector<double> getAlignmentVector() override;
+
 private:
   int payoffType_;          // 1: call; -1 put
   double strike_;
@@ -134,6 +138,19 @@ inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contVal
 			payAmounts_[idx] = spot > barrier_ ? contValue : 0;
 		}
 	}
+}
+
+inline bool BarrierCallPut::needsAlignment()
+{
+  return true;
+}
+
+inline std::vector<double> BarrierCallPut::getAlignmentVector()
+{
+  std::vector<double> alignment_vector(1);
+  alignment_vector[0] = barrier_;
+  //return alignment_vector;
+  return { barrier_ };
 }
 
 END_NAMESPACE(orf)

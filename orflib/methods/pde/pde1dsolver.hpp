@@ -56,7 +56,8 @@ public:
       the passed-in one-step discount factor. */
   virtual void discountFromStepToStep(double df);
 
- // virtual void setAlignment(std::vector<double> alignment_vector);
+  /** Aligns the grid to given value*/
+  virtual void setAlignment() override;
 
 protected:
 
