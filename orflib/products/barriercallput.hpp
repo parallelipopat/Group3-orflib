@@ -114,7 +114,7 @@ inline void BarrierCallPut::eval(Matrix const& pricePath)
 {
   ORF_ASSERT(0, "Not implemented yet!");
 
-  // I suspect this implementation isn't necessary. This was used for Monte Carlo i think
+  // This implementation not neccessary
 }
 
 inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contValue)
@@ -124,18 +124,18 @@ inline void BarrierCallPut::eval(size_t idx, Vector const& spots, double contVal
 	if (idx == payAmounts_.size() - 1) { // this is the last index
 		double payoff = (spot - strike_) * payoffType_;
 		if (barrier_type_[0] == 'u') {
-			payAmounts_[idx] = payoff > 0.0 && spot < barrier_ ? payoff : 0.0;
+			payAmounts_[idx] = payoff > 0.0 && spot < barrier_ - 0.00001 ? payoff : 0.0;
 		}
 		else {
-			payAmounts_[idx] = payoff > 0.0 && spot > barrier_ ? payoff : 0.0;
+			payAmounts_[idx] = payoff > 0.0 && spot > barrier_ + 0.00001 ? payoff : 0.0;
 		}	
 	}
 	else {  // this is not the last index, check whether barrier has been breached
 		if (barrier_type_[0] == 'u') {
-			payAmounts_[idx] = spot < barrier_ ? contValue : 0;
+			payAmounts_[idx] = spot < barrier_ - 0.00001 ? contValue : 0;
 		}
 		else {
-			payAmounts_[idx] = spot > barrier_ ? contValue : 0;
+			payAmounts_[idx] = spot > barrier_ + 0.00001 ? contValue : 0;
 		}
 	}
 }
