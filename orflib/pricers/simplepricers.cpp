@@ -212,7 +212,7 @@ double barrierOptionBS(int payoffType, std::string barrierType, double spot, dou
   ORF_ASSERT(strike >= 0.0, "strike must be non-negative");
   ORF_ASSERT(barrier >= 0.0, "barrier must be non-negative");
   ORF_ASSERT(volatility >= 0.0, "volatility must be non-negative");
-  ORF_ASSERT(barrierType == "uo" || barrierType == "do" || barrierType == "ui" || barrierType == "di", "invalid barrier type: must be one of uo, do, ui, or di.");
+  ORF_ASSERT(barrierType == "uo" || barrierType == "ui" || barrierType == "do" || barrierType == "di", "invalid barrier type: must be one of uo, ui, do, or di.");
 
   double price = 0.0;
   bool barrier_check = barrier <= strike;

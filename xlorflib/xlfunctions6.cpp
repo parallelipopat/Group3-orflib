@@ -38,6 +38,8 @@ LPXLFOPER EXCEL_EXPORT xlOrfBarrBS(LPXLFOPER xlPayoffType,
   double vol = XlfOper(xlVolatility).AsDouble();
 
   std::string barrier_type = xlStripTick(XlfOper(xlBarrierType).AsString());
+
+  // make the barrier type argument case insensitive.
   transform(barrier_type.begin(), barrier_type.end(), barrier_type.begin(), ::tolower);
 //  char *barrierType = &barrier_type[0u];
 
