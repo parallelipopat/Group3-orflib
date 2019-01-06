@@ -24,7 +24,7 @@ public:
   };
 
   /** Initializing ctor */
-  BarrierCallPut(int payoffType, double strike, double barrier, std::string barrier_type, Freq frequency, double timeToExp);
+  BarrierCallPut(int payoffType, double strike, double barrier, std::string barrierType, Freq frequency, double timeToExp);
 
   /** The number of assets this product depends on */
   virtual size_t nAssets() const override { return 1; }
@@ -39,8 +39,10 @@ public:
   */
   virtual void eval(size_t idx, Vector const& spots, double contValue) override;
 
+  /** Returns whether the grid needs to be aligned for PDE solving */
   bool needsAlignment() override;
 
+  /** Returns the alignment vector */
   std::vector<double> getAlignmentVector() override;
 
 private:
@@ -56,17 +58,19 @@ private:
 // Inline definitions
 
 inline
-BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, std::string barrier_type, Freq frequency, double timeToExp)
-  : payoffType_(payoffType), strike_(strike), barrier_(barrier), frequency_(frequency), barrier_type_(barrier_type), timeToExp_(timeToExp)
+BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, std::string barrierType, Freq frequency, double timeToExp)
+  : payoffType_(payoffType), strike_(strike), barrier_(barrier), frequency_(frequency), barrier_type_(barrierType), timeToExp_(timeToExp)
 {
   ORF_ASSERT(payoffType == 1 || payoffType == -1, "BarrierCallPut: the payoff type must be 1 (call) or -1 (put)!");
   ORF_ASSERT(strike > 0.0, "BarrierCallPut: the strike must be positive!");
   ORF_ASSERT(barrier > 0.0, "BarrierCallPut: the barrier must be positive!");
   ORF_ASSERT(timeToExp > 0.0, "BarrierCallPut: the time to expiration must be positive!");
+  ORF_ASSERT(barrierType == "uo" || barrierType == "do",
+             "BarrierCallPut: invalid barrier type : must be either uo or do.")
 
   double time_factor = 0.0;
   double monitoring_freq = 0.0;
-  size_t nfixings = static_cast<size_t>(0);
+  double nfixings = 0.0;
 
   switch (frequency) {
   case BarrierCallPut::Freq::MONTHLY:
@@ -93,7 +97,7 @@ BarrierCallPut::BarrierCallPut(int payoffType, double strike, double barrier, st
 
   // number of fixing times determined by Freq = time_factor AS WELL AS whether there is a stub
   nfixings = timeToExp_ * monitoring_freq + offset + 1;
-  size_t rounded_up_nfixings = ceil(nfixings);
+  size_t rounded_up_nfixings = static_cast<size_t>(ceil(nfixings));
   ORF_ASSERT(rounded_up_nfixings > 0, "BarrierCallPut: the option has expired!");
 
   // set the fixing times
@@ -147,9 +151,6 @@ inline bool BarrierCallPut::needsAlignment()
 
 inline std::vector<double> BarrierCallPut::getAlignmentVector()
 {
-  std::vector<double> alignment_vector(1);
-  alignment_vector[0] = barrier_;
-  //return alignment_vector;
   return { barrier_ };
 }
 
