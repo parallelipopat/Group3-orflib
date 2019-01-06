@@ -87,6 +87,9 @@ public:
       the passed-in one-step discount factor. */
   virtual void discountFromStepToStep(double df) = 0;
 
+  /** Aligns the grid to given vector */
+  virtual void setAlignment() = 0;
+
 protected:
   /** Default ctor */
   PdeBase() {}

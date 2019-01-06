@@ -59,6 +59,10 @@ public:
                          std::vector<double>& timesteps,
                          std::vector<ptrdiff_t>& stepindex) const;
 
+  virtual bool needsAlignment() { return false; };
+
+  virtual std::vector<double> getAlignmentVector() { return {0}; };
+
 protected:
   std::string payccy_;
   Vector fixTimes_;       // the fixing (observation) times

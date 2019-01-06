@@ -111,4 +111,15 @@ void Pde1DSolver::discountFromStepToStep(double df)
   *prevValues *= df;
 }
 
+/** Aligns the grid to given value */
+void Pde1DSolver::setAlignment()
+{
+  if (spprod_->needsAlignment()) {
+    alignments_ = spprod_->getAlignmentVector();
+  }
+  else {
+    alignments_ = spots_;
+  }
+}
+
 END_NAMESPACE(orf)

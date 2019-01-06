@@ -180,6 +180,7 @@
     <ClInclude Include="pricers\simplepricers.hpp" />
     <ClInclude Include="products\americancallput.hpp" />
     <ClInclude Include="products\asianbasketcallput.hpp" />
+    <ClInclude Include="products\barriercallput.hpp" />
     <ClInclude Include="products\europeancallput.hpp" />
     <ClInclude Include="products\product.hpp" />
     <ClInclude Include="sptr.hpp" />
