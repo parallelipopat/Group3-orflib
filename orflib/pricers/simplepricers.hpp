@@ -40,7 +40,7 @@ orf::Vector cdsPV(SPtrYieldCurve sprfyc, double credSprd, double cdsRate,
                   double recov, double timeToMat, size_t payFreq);
 
 /** Price of a Barrier option in the Black-Scholes model */
-double barrierOptionBS(int payoffType, std::string barrierType, double spot, double strike,
+double barrierOptionBS(int payoffType, char barrierType[2], double spot, double strike,
                        double barrier, double timeToExp, double intRate, double divYield,
                        double volatility);
 

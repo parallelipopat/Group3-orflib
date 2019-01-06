@@ -40,12 +40,12 @@ LPXLFOPER EXCEL_EXPORT xlOrfBarrBS(LPXLFOPER xlPayoffType,
   double vol = XlfOper(xlVolatility).AsDouble();
 
   std::string barrier_type = xlStripTick(XlfOper(xlBarrierType).AsString());
-
   // make the barrier type argument case insensitive.
   transform(barrier_type.begin(), barrier_type.end(), barrier_type.begin(), ::tolower);
-//  char *barrierType = &barrier_type[0u];
+  // convert the string to type char*
+  char *barrierType = &barrier_type[0u];
 
-  double price = barrierOptionBS(payoffType, barrier_type, spot, strike, barrier,
+  double price = barrierOptionBS(payoffType, barrierType, spot, strike, barrier,
                                  timeToExp, intRate, divYield, vol);
 
   return XlfOper(price);
@@ -96,6 +96,8 @@ LPXLFOPER EXCEL_EXPORT xlOrfBarrBSPDE(LPXLFOPER xlPayoffType,
   std::string barrier_type = xlStripTick(XlfOper(xlBarrierType).AsString());
   // make the barrier type argument case insensitive.
   transform(barrier_type.begin(), barrier_type.end(), barrier_type.begin(), ::tolower);
+  // convert the string to type char*
+  char *barrierType = &barrier_type[0u];
 
   std::string name = xlStripTick(XlfOper(xlDiscountCrv).AsString());
   SPtrYieldCurve spyc = market().yieldCurves().get(name);
@@ -123,7 +125,7 @@ LPXLFOPER EXCEL_EXPORT xlOrfBarrBSPDE(LPXLFOPER xlPayoffType,
     headers = XlfOper(xlHeaders).AsBool();
 
   // create the product
-  SPtrProduct spprod(new BarrierCallPut(payoffType, strike, barrier, barrier_type, freq, timeToExp));
+  SPtrProduct spprod(new BarrierCallPut(payoffType, strike, barrier, barrierType, freq, timeToExp));
 
   // create the PDE solver
   Pde1DResults results;

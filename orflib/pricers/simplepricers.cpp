@@ -204,7 +204,7 @@ orf::Vector cdsPV(SPtrYieldCurve sprfyc, double credSprd, double cdsRate,
 }
 
 /** Price of a Barrier option in the Black-Scholes model */
-double barrierOptionBS(int payoffType, std::string barrierType, double spot, double strike,
+double barrierOptionBS(int payoffType, char barrierType[2], double spot, double strike,
                        double barrier, double timeToExp, double intRate, double divYield,
                        double volatility)
 {
@@ -212,7 +212,10 @@ double barrierOptionBS(int payoffType, std::string barrierType, double spot, dou
   ORF_ASSERT(strike >= 0.0, "strike must be non-negative");
   ORF_ASSERT(barrier >= 0.0, "barrier must be non-negative");
   ORF_ASSERT(volatility >= 0.0, "volatility must be non-negative");
-  ORF_ASSERT(barrierType == "uo" || barrierType == "ui" || barrierType == "do" || barrierType == "di", "invalid barrier type: must be one of uo, ui, do, or di.");
+  
+  ORF_ASSERT(strcmp(barrierType, "uo") == 0 || strcmp(barrierType, "ui") == 0 ||
+             strcmp(barrierType, "do") == 0 || strcmp(barrierType, "di") == 0,
+             "invalid barrier type: must be one of uo, ui, do, or di.");
 
   double price = 0.0;
   bool barrier_check = barrier <= strike;
@@ -228,13 +231,13 @@ double barrierOptionBS(int payoffType, std::string barrierType, double spot, dou
   }
 
   if (barrier_check) {
-    if (barrierType == "di") {
+    if (strcmp(barrierType, "di") == 0) {
       price = barrierCdiPui(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
     }
-    else if (barrierType == "do") {
+    else if (strcmp(barrierType, "do") == 0) {
       price = option_price - barrierCdiPui(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
     }
-    else if (barrierType == "ui") {
+    else if (strcmp(barrierType, "ui") == 0) {
       price = option_price;
     }
     else {
@@ -242,13 +245,13 @@ double barrierOptionBS(int payoffType, std::string barrierType, double spot, dou
     }
   }
   else {
-    if (barrierType == "di") {
+    if (strcmp(barrierType, "di") == 0) {
       price = option_price - barrierCdoPuo(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
     }
-    else if (barrierType == "do") {
+    else if (strcmp(barrierType, "do") == 0) {
       price = barrierCdoPuo(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
     }
-    else if (barrierType == "ui") {
+    else if (strcmp(barrierType, "ui") == 0) {
       price = barrierCuiPdi(payoffType, spot, strike, barrier, timeToExp, intRate, divYield, volatility);
     }
     else {
