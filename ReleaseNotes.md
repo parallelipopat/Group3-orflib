@@ -8,11 +8,28 @@ VERSION 0.11.0
 
 1. In file `orflib/pricers/simplepricers.hpp` and `simplepricers.cpp`.  
 	Definition of function barrierOptionBS and related helper functions. 
-  
-2. New files `xlorflib/xlfunctions6.cpp` and `xlorflib/xlregister6.cpp`.  
+
+2. New file `orflib/product/barriercallput.hpp`
+    Definition of the class BarrierCallPut
+    
+3. New files `xlorflib/xlfunctions6.cpp` and `xlorflib/xlregister6.cpp`.  
 	They register and implement the following Excel callable functions:  
    ORF.BARRBS             (price of Barrier option under Black-Scholes)  
+   ORF.BARRBSPDE          (price of Barrier option by solving the PDE)
 
+### Modifications
+
+1. In file `orflib/methods/pde/pdebase.hpp`
+    Defintion of pure virtual function setAlignment().
+    
+2. In file `orflib/methods/pde/pdebase.cpp`
+    Used the function setAlignment to set the variable alignments_, instead of defaulting it to spots_.
+    
+3. In file `orflib/methods/pde/pde1dsolver.hpp` and `orflib/methods/pde/pde1dsolver.cpp`
+    Concrete definition of the virtual function setAlignment for 1d case
+    
+3. In file `orflib/products/product.hpp`
+    Added methods needsAlignment() and getAlignmentVector().
 
 VERSION 0.10.0
 -------------
